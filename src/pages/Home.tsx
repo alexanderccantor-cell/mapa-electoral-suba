@@ -1,20 +1,100 @@
-import { useState } from 'react'
-import '../App.css'
+import { useState, useCallback, useRef } from 'react';
+import { MapaSuba } from '@/components/MapaSuba';
+import type { MapaSubaHandle } from '@/components/MapaSuba';
+import { Buscador } from '@/components/Buscador';
+import { InfoCard } from '@/components/InfoCard';
+import { LeyendaUPZ } from '@/components/LeyendaUPZ';
+import { usePines } from '@/hooks/usePines';
+import type { Pin } from '@/types';
+import { Loader2, MapPin } from 'lucide-react';
+import { motion } from 'framer-motion';
 
-export default function Home() {
-  const [count, setCount] = useState(0)
+export function Home() {
+  const { pines, loading } = usePines();
+  const [pinSeleccionado, setPinSeleccionado] = useState<Pin | null>(null);
+  const mapaRef = useRef<MapaSubaHandle>(null);
+
+  const handlePinSelect = useCallback((pin: Pin) => {
+    setPinSeleccionado(pin);
+  }, []);
+
+  const handleCloseInfo = useCallback(() => {
+    setPinSeleccionado(null);
+  }, []);
+
+  const handleBuscar = useCallback(
+    (coordenadas: [number, number], zoom?: number) => {
+      mapaRef.current?.flyTo(coordenadas[0], coordenadas[1], zoom || 15);
+    },
+    []
+  );
+
+  const handleFlyToLeyenda = useCallback(
+    (lat: number, lng: number, zoom?: number) => {
+      mapaRef.current?.flyTo(lat, lng, zoom || 14);
+    },
+    []
+  );
 
   return (
-    <>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
+    <div className="relative w-full h-screen overflow-hidden bg-slate-950">
+      {/* Search Bar */}
+      <div className="absolute top-16 left-0 right-0 z-[1000] px-4 pointer-events-none">
+        <div className="pointer-events-auto max-w-md mx-auto">
+          <Buscador onSeleccionar={handleBuscar} />
+        </div>
       </div>
-    </>
-  )
+
+      {/* Stats */}
+      {!loading && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+          className="absolute top-28 left-4 z-[1000] bg-slate-950/60 backdrop-blur-sm border border-cyan-500/20 rounded-lg px-3 py-2"
+        >
+          <div className="flex items-center gap-2 text-xs text-slate-400">
+            <MapPin className="w-3 h-3 text-cyan-400" />
+            <span>
+              <span className="text-cyan-400 font-semibold">{pines.length}</span>{' '}
+              pines registrados
+            </span>
+          </div>
+        </motion.div>
+      )}
+
+      {/* Map Container */}
+      <div className="relative w-full h-full">
+        {loading ? (
+          <div className="w-full h-full flex items-center justify-center bg-slate-950">
+            <div className="text-center">
+              <Loader2 className="w-8 h-8 text-cyan-400 animate-spin mx-auto mb-3" />
+              <p className="text-sm text-slate-400">Cargando mapa...</p>
+            </div>
+          </div>
+        ) : (
+          <MapaSuba
+            ref={mapaRef}
+            pines={pines}
+            pinSeleccionado={pinSeleccionado}
+            onPinSelect={handlePinSelect}
+          />
+        )}
+      </div>
+
+      {/* UPZ Legend */}
+      {!loading && <LeyendaUPZ onFlyTo={handleFlyToLeyenda} />}
+
+      {/* Info Card */}
+      <InfoCard pin={pinSeleccionado} onClose={handleCloseInfo} />
+
+      {/* Corner decorations */}
+      <div className="absolute top-16 right-4 z-[999] pointer-events-none">
+        <div className="w-16 h-16 border-t-2 border-r-2 border-cyan-500/10 rounded-tr-xl" />
+      </div>
+      <div className="absolute bottom-4 right-4 z-[999] pointer-events-none">
+        <div className="w-16 h-16 border-b-2 border-r-2 border-cyan-500/10 rounded-br-xl" />
+      </div>
+    </div>
+  );
 }
