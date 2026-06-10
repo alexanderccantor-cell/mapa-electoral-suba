@@ -1,43 +1,54 @@
-import { useUser, useClerk } from '@clerk/clerk-react';
+import { useState, useEffect } from 'react';
 
 const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY || '';
+const IS_CONFIGURED = PUBLISHABLE_KEY.length > 10 && !PUBLISHABLE_KEY.includes('placeholder');
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function useAuthClerk(): any {
-  const { user, isSignedIn, isLoaded } = useUser();
-  const { openSignIn, signOut } = useClerk();
-  return { user, isSignedIn, isLoaded, openSignIn, signOut };
+interface AuthState {
+  isSignedIn: boolean;
+  isLoaded: boolean;
+  user: any;
+  openSignIn: () => void;
+  signOut: () => Promise<void>;
 }
 
-// Safe hook that works whether Clerk is configured or not
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function useAuth(): any {
-  // If Clerk is not configured, return mock auth state
-  if (!PUBLISHABLE_KEY) {
-    return {
-      isSignedIn: false,
-      isLoaded: true,
-      user: null,
-      openSignIn: () => {
-        console.warn('Clerk no esta configurado. Agrega VITE_CLERK_PUBLISHABLE_KEY.');
-      },
-      signOut: async () => {},
-    };
-  }
+export function useAuth(): AuthState {
+  const [state, setState] = useState<AuthState>({
+    isSignedIn: false,
+    isLoaded: !IS_CONFIGURED,
+    user: null,
+    openSignIn: () => {
+      console.warn('Clerk no esta configurado. Agrega VITE_CLERK_PUBLISHABLE_KEY.');
+    },
+    signOut: async () => {},
+  });
 
-  // Clerk is configured - safe to use hooks
-  try {
-    return useAuthClerk();
-  } catch (err) {
-    console.error('Clerk auth error:', err);
-    return {
-      isSignedIn: false,
-      isLoaded: true,
-      user: null,
-      openSignIn: () => {
-        console.warn('Error al inicializar Clerk.');
-      },
-      signOut: async () => {},
-    };
-  }
+  useEffect(() => {
+    if (!IS_CONFIGURED) return;
+
+    import('@clerk/clerk-react')
+      .then((clerk) => {
+        setState({
+          isSignedIn: false,
+          isLoaded: true,
+          user: null,
+          openSignIn: () => {
+            try { clerk.useClerk().openSignIn(); } catch { console.warn('Clerk no disponible'); }
+          },
+          signOut: async () => {
+            try { clerk.useClerk().signOut(); } catch { /* noop */ }
+          },
+        });
+      })
+      .catch(() => {
+        setState({
+          isSignedIn: false,
+          isLoaded: true,
+          user: null,
+          openSignIn: () => console.warn('Clerk no disponible'),
+          signOut: async () => {},
+        });
+      });
+  }, []);
+
+  return state;
 }
