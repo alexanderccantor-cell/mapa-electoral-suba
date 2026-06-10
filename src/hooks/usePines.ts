@@ -11,7 +11,8 @@ import { pinesDemo } from '@/data/pines-demo';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
-const hasSupabase = supabaseUrl.length > 0 && supabaseKey.length > 0;
+// Only consider Supabase configured if URL is a REAL Supabase URL (not placeholder)
+const hasSupabase = supabaseUrl.includes('.supabase.co') && !supabaseUrl.includes('placeholder') && supabaseKey.length > 20;
 
 export function usePines() {
   const [pines, setPines] = useState<Pin[]>([]);
