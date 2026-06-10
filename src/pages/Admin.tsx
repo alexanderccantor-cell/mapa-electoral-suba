@@ -180,9 +180,8 @@ export function Admin() {
     );
   }
 
-  if (!isSignedIn) {
-    return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+    // Login desactivado temporalmente - V21 funcional
+  // if (!isSignedIn) { return (login screen); }
         <div className="text-center max-w-md mx-auto px-4">
           <div className="w-16 h-16 rounded-2xl bg-slate-900 border border-cyan-500/20 flex items-center justify-center mx-auto mb-4">
             <LayoutGrid className="w-8 h-8 text-cyan-400" />
