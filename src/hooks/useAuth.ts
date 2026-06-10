@@ -3,9 +3,7 @@ export function useAuth() {
     isSignedIn: false,
     isLoaded: true,
     user: null,
-    openSignIn: () => {
-      console.warn('Clerk no configurado');
-    },
+    openSignIn: () => {},
     signOut: async () => {},
   };
 }
