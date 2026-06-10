@@ -1,7 +1,4 @@
-import { useState, useEffect } from 'react';
-
-const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY || '';
-const IS_CONFIGURED = PUBLISHABLE_KEY.length > 10 && !PUBLISHABLE_KEY.includes('placeholder');
+import { useUser, useClerk } from '@clerk/clerk-react';
 
 interface AuthState {
   isSignedIn: boolean;
@@ -12,43 +9,14 @@ interface AuthState {
 }
 
 export function useAuth(): AuthState {
-  const [state, setState] = useState<AuthState>({
-    isSignedIn: false,
-    isLoaded: !IS_CONFIGURED,
-    user: null,
-    openSignIn: () => {
-      console.warn('Clerk no esta configurado. Agrega VITE_CLERK_PUBLISHABLE_KEY.');
-    },
-    signOut: async () => {},
-  });
+  const { user, isSignedIn, isLoaded } = useUser();
+  const { openSignIn, signOut } = useClerk();
 
-  useEffect(() => {
-    if (!IS_CONFIGURED) return;
-
-    import('@clerk/clerk-react')
-      .then((clerk) => {
-        setState({
-          isSignedIn: false,
-          isLoaded: true,
-          user: null,
-          openSignIn: () => {
-            try { clerk.useClerk().openSignIn(); } catch { console.warn('Clerk no disponible'); }
-          },
-          signOut: async () => {
-            try { clerk.useClerk().signOut(); } catch { /* noop */ }
-          },
-        });
-      })
-      .catch(() => {
-        setState({
-          isSignedIn: false,
-          isLoaded: true,
-          user: null,
-          openSignIn: () => console.warn('Clerk no disponible'),
-          signOut: async () => {},
-        });
-      });
-  }, []);
-
-  return state;
+  return {
+    isSignedIn: isSignedIn || false,
+    isLoaded,
+    user: user ?? null,
+    openSignIn: () => openSignIn(),
+    signOut: () => signOut(),
+  };
 }
